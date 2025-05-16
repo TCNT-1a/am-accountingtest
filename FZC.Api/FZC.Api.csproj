@@ -19,4 +19,8 @@
     <ProjectReference Include="..\FZC.Application\FZC.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="seed\" />
+  </ItemGroup>
+
 </Project>
