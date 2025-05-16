@@ -16,8 +16,8 @@ namespace FZC.Infrastructure.Repositories
         Task<T?> GetByIdAsync(int id);
         Task<IEnumerable<T>> GetAllAsync();
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
-        Task AddAsync(T entity);
-        Task UpdateAsync(T entity);
+        Task<T> AddAsync(T entity);
+        Task<T> UpdateAsync(T entity);
         Task DeleteAsync(T entity);
         Task SaveChangesAsync();
     }
@@ -48,14 +48,21 @@ namespace FZC.Infrastructure.Repositories
             return await _dbSet.Where(predicate).ToListAsync();
         }
 
-        public async Task AddAsync(T entity)
+        public async Task<T> AddAsync(T entity)
         {
-            await _dbSet.AddAsync(entity);
+            var entry = await _dbSet.AddAsync(entity);
+            return entry.Entity;
         }
 
-        public async Task UpdateAsync(T entity)
+        public async Task<T> UpdateAsync(T entity)
         {
-            _dbSet.Update(entity);
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity), "Entity to update cannot be null.");
+            }
+            var entry =  _dbSet.Update(entity);
+            return entry.Entity;
+   
         }
 
         public async Task DeleteAsync(T entity)
