@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://go.microsoft.com/fwlink/?LinkID=208121. -->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>D:\project\llm-lazypromp\PromptBuilder\PromptBuilder\bin\Release\net8.0\publish\</_PublishTargetUrl>
+    <History>True|2025-04-13T16:14:21.5921929Z||;True|2025-04-13T22:37:36.4641937+07:00||;True|2025-04-13T18:46:34.6533828+07:00||;True|2025-04-13T18:31:48.8467050+07:00||;True|2025-04-13T18:17:19.7667261+07:00||;False|2025-04-13T18:16:15.9386321+07:00||;True|2025-04-13T17:55:25.3367521+07:00||;True|2025-04-13T17:55:20.5649059+07:00||;True|2025-04-13T17:50:06.6902859+07:00||;True|2025-04-13T17:48:54.3950655+07:00||;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

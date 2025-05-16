@@ -1,0 +1,5 @@
+dotnet ef migrations add InitialCreate --startup-project ../FZC.Api --project ../FZC.Infrastructure
+dotnet ef database update --startup-project ../FZC.Api --project ../FZC.Infrastructure
+
+Cài đặt ở nuget ở project FZC.Infrastructure
+SQLitePCLRaw.bundle_e_sqlite3
