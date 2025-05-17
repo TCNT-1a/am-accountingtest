@@ -1,7 +1,11 @@
-﻿using FZC.Domain.Entities;
+﻿using FZC.Application.Dtos;
+using FZC.Domain.Entities;
 using FZC.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
+using FZC.Application.Services;
 
 namespace FZC.Api.Controllers
 {
@@ -14,14 +18,59 @@ namespace FZC.Api.Controllers
         {
             _chungTuRepository = chungTuRepository;
         }
-        // GET /api/chungtu
+        // GET /api/chungtu?filter={}&sort={}&range={}
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? filter, [FromQuery] string? sort, [FromQuery] string? range)
         {
-            var chungTus = await _chungTuRepository.Query()
-                // .Include(x => x.ChiTietChungTus)
-                .ToListAsync();
-            return Ok(chungTus);
+            var query = _chungTuRepository.Query();
+
+            // React-admin expects pagination and filtering, you can parse filter/range here if needed
+            // For demo, just return all
+            // Parse filter from react-admin (expects JSON string)
+            if (!string.IsNullOrEmpty(filter))
+            {
+                var filterObj = JsonSerializer.Deserialize<Dictionary<string, object>>(filter);
+                if (filterObj != null)
+                {
+
+                    var soChungTu = FilterHelper.GetStringFromFilter(filterObj, "soChungTu");
+                    if (!string.IsNullOrEmpty(soChungTu))
+                        query = query.Where(x => x.SoChungTu.Contains(soChungTu));
+
+                    var loaiChungTu = FilterHelper.GetStringFromFilter(filterObj, "loaiChungTu");
+                    if (!string.IsNullOrEmpty(loaiChungTu))
+                        query = query.Where(x => x.LoaiChungTu == loaiChungTu);
+
+                    var ngayChungTu = FilterHelper.GetDateFromFilter(filterObj, "ngayChungTu");
+                    if (ngayChungTu.HasValue)
+                        query = query.Where(x => x.NgayChungTu.Date == ngayChungTu.Value.Date);
+                }
+            }
+        
+
+            // Parse range for pagination: range=[start, end]
+            int skip = 0, take = 100;
+            if (!string.IsNullOrEmpty(range))
+            {
+                try
+                {
+                    var rangeArr = JsonSerializer.Deserialize<int[]>(range);
+                    if (rangeArr != null && rangeArr.Length == 2)
+                    {
+                        skip = rangeArr[0];
+                        take = rangeArr[1] - rangeArr[0] + 1;
+                    }
+                }
+                catch { }
+            }
+
+            var total = await query.CountAsync();
+            var data = await query.Skip(skip).Take(take).ToListAsync();
+
+            Response.Headers.Add("Access-Control-Expose-Headers", "Content-Range");
+            Response.Headers.Add("Content-Range", $"chungtu 0-{data.Count - 1}/{total}");
+
+            return Ok(data);
         }
 
         // GET /api/chungtu/{id}
@@ -29,34 +78,58 @@ namespace FZC.Api.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var chungTu = await _chungTuRepository.Query()
-                // .Include(x => x.ChiTietChungTus)
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (chungTu == null)
                 return NotFound();
             return Ok(chungTu);
         }
+
+        // POST /api/chungtu
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] ChungTu model)
+        public async Task<IActionResult> Create([FromBody] ChungTuCreate model)
         {
-            var result = await _chungTuRepository.AddAsync(model);
-            return Ok(result);
+
+            ChungTu chungTu = new ChungTu()
+            {
+                SoChungTu = model.SoChungTu,
+                NgayChungTu = model.NgayChungTu,
+                LoaiChungTu = model.LoaiChungTu,
+                DienGiai = model.DienGiai
+            };
+            var result = await _chungTuRepository.AddAsync(chungTu);
+            await _chungTuRepository.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        // PUT /api/chungtu/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ChungTu model)
+        public async Task<IActionResult> Update(int id, [FromBody] ChungTuEdit model)
         {
+            var existing = await _chungTuRepository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound();
+
             model.Id = id;
-            var result = await _chungTuRepository.UpdateAsync(model);
+            existing.SoChungTu = model.SoChungTu;
+            existing.NgayChungTu = model.NgayChungTu;
+            existing.LoaiChungTu = model.LoaiChungTu;
+            existing.DienGiai = model.DienGiai;
+            existing.TongTien = model.TongTien;
+
+            var result = await _chungTuRepository.UpdateAsync(existing);
+            await _chungTuRepository.SaveChangesAsync();
             return Ok(result);
         }
 
+        // DELETE /api/chungtu/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var chungTu = _chungTuRepository.Query().FirstOrDefault(x => x.Id == id);
+            var chungTu = await _chungTuRepository.GetByIdAsync(id);
             if (chungTu == null)
                 return NotFound();
             await _chungTuRepository.DeleteAsync(chungTu);
+            await _chungTuRepository.SaveChangesAsync();
             return NoContent();
         }
 
