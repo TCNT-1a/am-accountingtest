@@ -5,8 +5,8 @@ by editing this MSBuild file. In order to learn more about this please visit htt
 -->
 <Project>
   <PropertyGroup>
-    <_PublishTargetUrl>D:\findzipcodenow\FZC.Api\bin\Release\net8.0\publish\</_PublishTargetUrl>
-    <History>True|2025-04-05T18:22:00.5874889Z||;True|2025-04-04T16:10:58.7133719+07:00||;True|2025-04-03T03:12:56.4494482+07:00||;True|2025-04-03T02:03:36.3619734+07:00||;True|2025-04-03T02:02:59.3708186+07:00||;True|2025-04-02T23:20:46.2129966+07:00||;True|2025-04-02T20:37:31.6444588+07:00||;</History>
+    <_PublishTargetUrl>C:\Users\n\Documents\project\am-accountingtest\FZC.Api\bin\Release\net8.0\publish\</_PublishTargetUrl>
+    <History>True|2025-05-17T06:41:08.2060019Z||;True|2025-05-17T13:40:11.3463126+07:00||;True|2025-04-06T01:22:00.5874889+07:00||;True|2025-04-04T16:10:58.7133719+07:00||;True|2025-04-03T03:12:56.4494482+07:00||;True|2025-04-03T02:03:36.3619734+07:00||;True|2025-04-03T02:02:59.3708186+07:00||;True|2025-04-02T23:20:46.2129966+07:00||;True|2025-04-02T20:37:31.6444588+07:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
 </Project>

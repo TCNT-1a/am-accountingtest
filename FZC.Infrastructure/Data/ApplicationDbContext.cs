@@ -53,21 +53,24 @@ namespace FZC.Infrastructure.Data
                     Id = 1,
                     ChungTuId = 1,
                     DienGiai = "Chi tiết 1 cho chứng từ 1",
-                    SoTien = 50000
+                    SoTien = 50000,
+                    LoaiGiaoDich = "Loại 1"
                 },
                 new ChiTietChungTu
                 {
                     Id = 2,
                     ChungTuId = 1,
                     DienGiai = "Chi tiết 2 cho chứng từ 1",
-                    SoTien = 50000
+                    SoTien = 50000,
+                    LoaiGiaoDich = "Loại 1"
                 },
                 new ChiTietChungTu
                 {
                     Id = 3,
                     ChungTuId = 2,
                     DienGiai = "Chi tiết 1 cho chứng từ 2",
-                    SoTien = 200000
+                    SoTien = 200000,
+                    LoaiGiaoDich = "Loại 2"
                 }
             };
 

@@ -14,11 +14,26 @@ namespace FZC.Api.Controllers
         {
             _chungTuRepository = chungTuRepository;
         }
+        // GET /api/chungtu
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> GetAll()
         {
-            var chungTus = await _chungTuRepository.Query().Include(x => x.ChiTietChungTus).ToListAsync();
+            var chungTus = await _chungTuRepository.Query()
+                // .Include(x => x.ChiTietChungTus)
+                .ToListAsync();
             return Ok(chungTus);
+        }
+
+        // GET /api/chungtu/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var chungTu = await _chungTuRepository.Query()
+                // .Include(x => x.ChiTietChungTus)
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (chungTu == null)
+                return NotFound();
+            return Ok(chungTu);
         }
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ChungTu model)
