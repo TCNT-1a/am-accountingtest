@@ -15,7 +15,8 @@ namespace FZC.Domain.Entities
         public int Id { get; set; }
         public string MaTaiKhoan { get; set; } = string.Empty;
         public string DienGiai { get; set; } = string.Empty;
-        public decimal SoTien {  get; set; }    
+        [Range(0, double.MaxValue)]
+        public decimal SoTien { get; set; }    
         public string LoaiGiaoDich {  get; set; } = string.Empty;
         public int ChungTuId { get; set; }
         public virtual ChungTu ChungTu { get; set; }
