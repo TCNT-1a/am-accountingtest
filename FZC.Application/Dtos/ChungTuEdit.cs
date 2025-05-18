@@ -17,6 +17,7 @@ namespace FZC.Application.Dtos
         public string LoaiChungTu { get; set; } = string.Empty;
         [MaxLength(255)]
         public string DienGiai { get; set; } = string.Empty;
+        [Range(0, double.MaxValue)]
         public decimal TongTien { get; set; }
     }
 }
