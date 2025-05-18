@@ -13,16 +13,19 @@ namespace FZC.Api.Controllers
     [Route("api/[controller]")]
     public class ChungTuController : ControllerBase
     {
-        public readonly IChungTuRepository _chungTuRepository;
-        public ChungTuController(IChungTuRepository chungTuRepository)
+        public readonly IChungTuRepository _chungTu;
+        private readonly IChiTietChungTuRepository _chitietChungTu;
+        
+        public ChungTuController(IChungTuRepository chungTuRepository, IChiTietChungTuRepository chitietChungTu)
         {
-            _chungTuRepository = chungTuRepository;
+            _chungTu = chungTuRepository;
+            _chitietChungTu = chitietChungTu;
         }
         // GET /api/chungtu?filter={}&sort={}&range={}
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? filter, [FromQuery] string? sort, [FromQuery] string? range)
         {
-            var query = _chungTuRepository.Query();
+            var query = _chungTu.Query();
 
             // React-admin expects pagination and filtering, you can parse filter/range here if needed
             // For demo, just return all
@@ -77,7 +80,7 @@ namespace FZC.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var chungTu = await _chungTuRepository.Query()
+            var chungTu = await _chungTu.Query()
                 .FirstOrDefaultAsync(x => x.Id == id);
             if (chungTu == null)
                 return NotFound();
@@ -96,8 +99,8 @@ namespace FZC.Api.Controllers
                 LoaiChungTu = model.LoaiChungTu,
                 DienGiai = model.DienGiai
             };
-            var result = await _chungTuRepository.AddAsync(chungTu);
-            await _chungTuRepository.SaveChangesAsync();
+            var result = await _chungTu.AddAsync(chungTu);
+            await _chungTu.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
@@ -105,7 +108,7 @@ namespace FZC.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] ChungTuEdit model)
         {
-            var existing = await _chungTuRepository.GetByIdAsync(id);
+            var existing = await _chungTu.GetByIdAsync(id);
             if (existing == null)
                 return NotFound();
 
@@ -116,8 +119,8 @@ namespace FZC.Api.Controllers
             existing.DienGiai = model.DienGiai;
             existing.TongTien = model.TongTien;
 
-            var result = await _chungTuRepository.UpdateAsync(existing);
-            await _chungTuRepository.SaveChangesAsync();
+            var result = await _chungTu.UpdateAsync(existing);
+            await _chungTu.SaveChangesAsync();
             return Ok(result);
         }
 
@@ -125,18 +128,27 @@ namespace FZC.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var chungTu = await _chungTuRepository.GetByIdAsync(id);
+            var chungTu = await _chungTu.GetByIdAsync(id);
             if (chungTu == null)
                 return NotFound();
-            await _chungTuRepository.DeleteAsync(chungTu);
-            await _chungTuRepository.SaveChangesAsync();
-            return NoContent();
+            await _chungTu.DeleteAsync(chungTu);
+            await _chungTu.SaveChangesAsync();
+            var chitietchungtuList = _chitietChungTu.Query().Where(p => p.ChungTuId == id);
+
+            foreach (var ct in chitietchungtuList)
+            {
+                ct.isDeleted = true;
+                ct.updateDate = DateTime.UtcNow;
+                await _chitietChungTu.UpdateAsync(ct);
+            }
+            await _chitietChungTu.SaveChangesAsync();
+            return Ok(new { id });
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> Search(string? soChungTu, string? loaiChungTu, DateTime? ngayChungTu)
         {
-            var query = _chungTuRepository.Query();
+            var query = _chungTu.Query();
             if (!string.IsNullOrEmpty(soChungTu))
                 query = query.Where(x => x.SoChungTu.Contains(soChungTu));
             if (!string.IsNullOrEmpty(loaiChungTu))

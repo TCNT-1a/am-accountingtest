@@ -50,6 +50,11 @@ namespace FZC.Infrastructure.Repositories
 
         public async Task<T> AddAsync(T entity)
         {
+            if (entity is BaseEntity baseEntity)
+            {
+                baseEntity.createDate = DateTime.UtcNow;
+                baseEntity.updateDate = DateTime.UtcNow;
+            }
             var entry = await _dbSet.AddAsync(entity);
             return entry.Entity;
         }
@@ -59,6 +64,10 @@ namespace FZC.Infrastructure.Repositories
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity), "Entity to update cannot be null.");
+            }
+            if (entity is BaseEntity baseEntity)
+            {
+                baseEntity.updateDate = DateTime.UtcNow;
             }
             var entry =  _dbSet.Update(entity);
             return entry.Entity;
@@ -85,7 +94,14 @@ namespace FZC.Infrastructure.Repositories
         }
         public IQueryable<T> Query()
         {
-            return _dbSet.AsQueryable();
+            var query = _dbSet.AsQueryable();
+
+            if (typeof(BaseEntity).IsAssignableFrom(typeof(T)))
+            {
+                query = query.Where(e => !(e as BaseEntity).isDeleted);
+            }
+
+            return query;
         }
     }
 }

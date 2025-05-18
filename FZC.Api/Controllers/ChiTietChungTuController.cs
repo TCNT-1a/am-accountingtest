@@ -1,7 +1,9 @@
-﻿using FZC.Domain.Entities;
+﻿using FZC.Application.Dtos;
+using FZC.Domain.Entities;
 using FZC.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.WebSockets;
 
 namespace FZC.Api.Controllers
 {
@@ -10,9 +12,11 @@ namespace FZC.Api.Controllers
     public class ChiTietChungTuController : ControllerBase
     {
         private readonly IChiTietChungTuRepository _chitietChungTu;
-        public ChiTietChungTuController(IChiTietChungTuRepository chitietChungTu)
+        private readonly IChungTuRepository _chungTu;
+        public ChiTietChungTuController(IChiTietChungTuRepository chitietChungTu, IChungTuRepository chungTu)
         {
-            this._chitietChungTu = chitietChungTu;
+            _chitietChungTu = chitietChungTu;
+            _chungTu = chungTu;
         }
         // GET /api/chitietchungtu?filter={}&sort={}&range={}
         [HttpGet]
@@ -20,8 +24,18 @@ namespace FZC.Api.Controllers
         {
             var query = _chitietChungTu.Query();
 
-            // React-admin expects pagination and filtering, you can parse filter/range here if needed
-            // For demo, just return all
+            if (!string.IsNullOrEmpty(filter))
+            {
+                var filterObj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(filter);
+                if (filterObj != null)
+                {
+                    if (filterObj.TryGetValue("chungTuId", out var chungTuIdObj) && int.TryParse(chungTuIdObj?.ToString(), out var chungTuId))
+                    {
+                        query = query.Where(x => x.ChungTuId == chungTuId);
+                    }
+                }
+            }
+
             var total = await query.CountAsync();
             var data = await query.ToListAsync();
 
@@ -42,24 +56,58 @@ namespace FZC.Api.Controllers
 
         // POST /api/chitietchungtu
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] ChiTietChungTu model)
+        public async Task<IActionResult> Create([FromBody] ChiTietChungTuCreate model)
         {
-            var result = await _chitietChungTu.AddAsync(model);
+            ChiTietChungTu c = new ChiTietChungTu()
+            {
+                MaTaiKhoan = model.MaTaiKhoan,
+                DienGiai = model.DienGiai,
+                SoTien = model.SoTien,
+                LoaiGiaoDich = model.LoaiGiaoDich,
+                ChungTuId = model.chungTuId,
+            };
+            var result = await _chitietChungTu.AddAsync(c);
             await _chitietChungTu.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            await CapNhatTongTienChungTu(model.chungTuId);
+            
+            var r = new ChiTietChungTuDto()
+            {
+                Id = result.Id,
+                MaTaiKhoan = result.MaTaiKhoan,
+                DienGiai = result.DienGiai,
+                SoTien = result.SoTien,
+                LoaiGiaoDich = result.LoaiGiaoDich,
+                ChungTuId = result.ChungTuId
+            };
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, r);
         }
 
         // PUT /api/chitietchungtu/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ChiTietChungTu model)
+        public async Task<IActionResult> Update(int id, [FromBody] ChiTietChungTuEdit model)
         {
             var existing = await _chitietChungTu.Query().FirstOrDefaultAsync(x => x.Id == id);
             if (existing == null) return NotFound();
 
-            model.Id = id;
-            var result = await _chitietChungTu.UpdateAsync(model);
+            existing.MaTaiKhoan = model.MaTaiKhoan;
+            existing.DienGiai = model.DienGiai;
+            existing.SoTien = model.SoTien;
+            existing.LoaiGiaoDich = model.LoaiGiaoDich;
+
+            var result = await _chitietChungTu.UpdateAsync(existing);
             await _chitietChungTu.SaveChangesAsync();
-            return Ok(result);
+
+            await CapNhatTongTienChungTu(existing.ChungTuId);
+
+            var chitietChungTuDto = new ChiTietChungTuDto()
+            {
+                Id = result.Id,
+                MaTaiKhoan = result.MaTaiKhoan,
+                DienGiai = result.DienGiai,
+                SoTien = result.SoTien,
+                LoaiGiaoDich = result.LoaiGiaoDich,
+            };
+            return Ok(chitietChungTuDto);
         }
 
         // DELETE /api/chitietchungtu/{id}
@@ -68,26 +116,41 @@ namespace FZC.Api.Controllers
         {
             var item = await _chitietChungTu.Query().FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return NotFound();
+            int chungTuId = item.ChungTuId;
             await _chitietChungTu.DeleteAsync(item);
             await _chitietChungTu.SaveChangesAsync();
-            return NoContent();
+            await CapNhatTongTienChungTu(chungTuId);
+            // return NoContent();
+            return Ok(new { id });
         }
-
-        [HttpGet("by-chungtu/{chungTuId}")]
-        public async Task<IActionResult> GetByChungTu(int chungTuId)
+        private async Task CapNhatTongTienChungTu(int chungTuId)
         {
-            var result = await _chitietChungTu.Query().Where(x => x.ChungTuId == chungTuId).ToListAsync();
-            return Ok(result);
-        }
+            var chungtu = _chungTu.Query().FirstOrDefault(p => p.Id == chungTuId);
+            if (chungtu != null)
+            {
+                chungtu.TongTien = _chitietChungTu.Query()
+                    .Where(x => x.ChungTuId == chungTuId)
+                    .Sum(x => x.SoTien);
 
-        [HttpGet("tong-hop-so-tien")]
-        public async Task<IActionResult> TongHopSoTien()
-        {
-            var result = await _chitietChungTu.Query()
-                .GroupBy(x => x.ChungTuId)
-                .Select(g => new { ChungTuId = g.Key, TongTien = g.Sum(x => x.SoTien) })
-                .ToListAsync();
-            return Ok(result);
+                await _chungTu.UpdateAsync(chungtu);
+                await _chungTu.SaveChangesAsync();
+            }
         }
+        // [HttpGet("by-chungtu/{chungTuId}")]
+        // public async Task<IActionResult> GetByChungTu(int chungTuId)
+        // {
+        //     var result = await _chitietChungTu.Query().Where(x => x.ChungTuId == chungTuId).ToListAsync();
+        //     return Ok(result);
+        // }
+
+        // [HttpGet("tong-hop-so-tien")]
+        // public async Task<IActionResult> TongHopSoTien()
+        // {
+        //     var result = await _chitietChungTu.Query()
+        //         .GroupBy(x => x.ChungTuId)
+        //         .Select(g => new { ChungTuId = g.Key, TongTien = g.Sum(x => x.SoTien) })
+        //         .ToListAsync();
+        //     return Ok(result);
+        // }
     }
 }
